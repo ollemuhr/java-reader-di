@@ -1,1 +1,2 @@
-# java-reader-di
+# Messing around with reader monad di
+
