@@ -1,5 +1,8 @@
 package com.github.ollemuhr;
 
+import com.github.ollemuhr.validation.Validation;
+
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -27,7 +30,11 @@ public interface Users {
         return new Reader<>(config -> config.getUserRepository().create(user));
     }
 
-    default public Reader<Config, Void> update(final User user) {
+    default public Reader<Config, Validation<List<Object>, User>> createValid(final Validation<List<Object>, User> user) {
+        return new Reader<>(config -> config.getUserRepository().createValid(user));
+    }
+
+    default public Reader<Config, Validation<String, User>> update(final User user) {
         return new Reader<>(config -> config.getUserRepository().update(user));
     }
 

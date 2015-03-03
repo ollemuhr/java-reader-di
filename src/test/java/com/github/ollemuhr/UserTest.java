@@ -1,19 +1,18 @@
 package com.github.ollemuhr;
 
-import org.junit.Assert;
+import com.github.ollemuhr.validation.Validation;
 import org.junit.Test;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
-import static java.lang.System.out;
+import static com.github.ollemuhr.validation.Validation.failure;
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toMap;
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 
 /**
  *
@@ -45,7 +44,7 @@ class TestConf {
 
                     @Override
                     public Optional<User> getOpt(final Integer id) {
-                        return ofNullable(fromId.get(id));
+                        return ofNullable(get(id));
                     }
 
                     @Override
@@ -63,8 +62,8 @@ class TestConf {
 
                     @Override
                     public User create(final User user) {
-                        getOpt(user.getId()).ifPresent(u -> {
-                            throw new IllegalArgumentException("Already exist");
+                        findOpt(user.getUsername()).ifPresent(u -> {
+                            throw new RuntimeException("user.unique.constraint");
                         });
                         final User toInsert = user.withId(idGen.incrementAndGet());
                         fromId.put(toInsert.getId(), toInsert);
@@ -72,27 +71,59 @@ class TestConf {
                     }
 
                     @Override
-                    public Void update(final User user) {
-                        getOpt(user.getId()).map(u ->
-                                fromId.put(user.getId(), user))
-                                .orElseThrow(() ->
-                                        new IllegalArgumentException("Not found"));
-                        return null;
+                    public Validation<List<Object>, User> createValid(Validation<List<Object>, User> user) {
+                        try {
+                            return user.map(this::create);
+                        } catch (Exception e) {
+                            return user.flatMap(u -> failure(e.getMessage(), u));
+                        }
+                    }
+
+                    @Override
+                    public Validation<String, User> update(final User user) {
+                        try {
+                            getOpt(user.getId()).map(u ->
+                                    fromId.put(user.getId(), user))
+                                    .orElseThrow(() ->
+                                            new RuntimeException("user.not.exists"));
+
+                            return Validation.success(user);
+
+                        } catch (Exception e) {
+
+                            return Validation.failure(e.getMessage(), user);
+                        }
                     }
                 };
+            }
+
+            void print(String s, String... arg) {
+                System.out.println(String.format(s, arg));
+            }
+
+            void print(String s) {
+                System.out.println(s);
             }
 
             @Override
             public MailService getMailService() {
                 return new MailService() {
                     @Override
-                    public Void send(String from, String to, String subject, String message) {
-                        out.println("pretending to send a mail:");
-                        out.println(String.format("from:\t\t%s", from));
-                        out.println(String.format("to:\t\t\t%s", to));
-                        out.println(String.format("subject:\t%s", subject));
-                        out.println(String.format("message:\t%s", message));
+                    public Validation<List<Object>, Void> send(Mail mail) {
                         return null;
+                    }
+
+                    @Override
+                    public Validation<List<Object>, Void> sendValid(Validation<List<Object>, Mail> mail) {
+                        return mail.map(m -> {
+                                    print("pretending to send a mail:");
+                                    print("from:\t\t%s", m.getFrom());
+                                    print("to:\t\t\t%s", m.getTo());
+                                    print("subject:\t%s", m.getSubject());
+                                    print("message:\t%s", m.getMessage());
+                                    return null;
+                                }
+                        );
                     }
                 };
             }
@@ -112,7 +143,7 @@ public class UserTest extends TestConf {
     @Test
     public void testUserEmail() {
 
-        assertEquals("Mrone@Oner.se", app().getUserMail(1));
+        assertEquals("Mrone@Oner.se", app().getUserMail(1).orElse("not found"));
     }
 
     @Test
@@ -153,15 +184,26 @@ public class UserTest extends TestConf {
     public void testUpdate() {
         final TestAppl app = app();
         final User u = app.findById(1);
-        final User toUpdate = new User(u.getId(),u.getSupervisorId(),u.getFirstName(),u.getLastName(),u.getEmail(),"newUsername");
-        app.update(toUpdate);
+        final User toUpdate = new User(u.getId(), u.getSupervisorId(), u.getFirstName(), u.getLastName(), u.getEmail(), "newUsername");
+        assertTrue(app.update(toUpdate).isSuccess());
         assertEquals("newUsername", app.findById(1).getUsername());
     }
 
+
     @Test
-    public void mailToConsole() {
-        app().createAndMail(new User(null, 1, "You've", "Gotmail", "a@b.se", "youvegotmail"));
+    public void mailToConsoleOpt() {
+        final Validation<List<Object>, User> v = app().createValidAndMail(new User(null, 1, "Youve", "Gotmail", "a@b.se", "youvegotmail"));
+        assertTrue(v.isSuccess());
+        assertTrue(v.value().getId() > 0);
     }
+
+    @Test
+    public void testCreateThrows() {
+        final Validation<List<Object>, User> v = app().createValidAndMail(new User(null, 1, "You've", "Gotm'ail", "a@b.se", "mrone"));
+        System.out.println(v.failure());
+        assertFalse(v.isSuccess());
+    }
+
     private TestAppl app() {
         return new TestAppl(config());
     }

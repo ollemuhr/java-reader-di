@@ -17,12 +17,11 @@ public class Reader<C, A> {
         return run.apply(c);
     }
 
-    public <B> Reader<C,B> map(Function<A, B> f) {
+    public <B> Reader<C, B> map(Function<A, B> f) {
         return new Reader<>(c -> f.apply(run.apply(c)));
     }
 
     public <B> Reader<C, B> flatMap(Function<A, Reader<C, B>> f) {
         return new Reader<>(c -> f.apply(run.apply(c)).apply(c));
     }
-
 }

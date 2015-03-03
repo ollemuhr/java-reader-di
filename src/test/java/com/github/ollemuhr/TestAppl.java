@@ -1,5 +1,8 @@
 package com.github.ollemuhr;
 
+import com.github.ollemuhr.validation.Validation;
+
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -24,7 +27,7 @@ public class TestAppl {
         return run(userManager.findUser(username));
     }
 
-    public String getUserMail(final Integer id) {
+    Optional<String> getUserMail(final Integer id) {
         return run(userManager.userEmail(id));
     }
 
@@ -48,12 +51,13 @@ public class TestAppl {
         return run(userManager.create(user));
     }
 
-    public Void update(final User user) {
+    public Validation<String, User> update(final User user) {
         return run(userManager.update(user));
     }
 
-    public Void createAndMail(final User user) {
-        return run(userManager.createAndMail(user));
+    public Validation<List<Object>, User> createValidAndMail(final User user) {
+
+        return run(userManager.createValidAndMail(user));
     }
 
     private <T> T run(Reader<Config, T> r) {

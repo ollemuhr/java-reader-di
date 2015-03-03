@@ -1,17 +1,21 @@
 package com.github.ollemuhr;
 
+import com.github.ollemuhr.validation.Validation;
+
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiFunction;
+import java.util.function.Function;
 
 /**
  *
  */
 public class UserManager implements Users, Mailer {
 
-    public Reader<Config, String> userEmail(final Integer id) {
-        return getUser(id).map(User::getEmail);
+    public Reader<Config, Optional<String>> userEmail(final Integer id) {
+        return getUserOpt(id).map(opt -> opt.map(User::getEmail));
     }
 
     private BiFunction<User, User, Map<String, String>> toMap = (user, boss) -> {
@@ -39,8 +43,9 @@ public class UserManager implements Users, Mailer {
     public Reader<Config, Optional<Map<String, String>>> userInfoOpt(final String username) {
         return findUserOpt(username).flatMap(userOpt ->
                 userOpt.map(user ->
-                        getUserOpt(user.getSupervisorId()).map(bossOpt -> bossOpt.map(boss ->
-                                toMap.apply(user, boss))))
+                        getUserOpt(user.getSupervisorId()).map(bossOpt ->
+                                bossOpt.map(boss ->
+                                        toMap.apply(user, boss))))
                         .orElse(new Reader<>(c -> Optional.empty())));
     }
 
@@ -49,8 +54,14 @@ public class UserManager implements Users, Mailer {
                 getUser(u.getSupervisorId()));
     }
 
-    public Reader<Config, Void> createAndMail(final User user) {
-        return create(user).flatMap(u ->
-                send("the mailer", u.getEmail(), "your account", "your username: " + u.getUsername()));
+    public Reader<Config, Validation<List<Object>, User>> createValidAndMail(final User user) {
+
+        final Function<User, Mail> mail = u -> new Mail("the mailer", u.getEmail(), "your account", "your id: " + u.getId());
+
+        return createValid(User.validate(user))
+                .flatMap(v ->
+                        sendValid(v.map(mail)).map(x -> v));
+
     }
+
 }
