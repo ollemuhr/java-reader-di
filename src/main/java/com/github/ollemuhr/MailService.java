@@ -1,14 +1,11 @@
 package com.github.ollemuhr;
 
-import com.github.ollemuhr.validation.Validation;
-
-import java.util.List;
+import io.vavr.collection.Seq;
+import io.vavr.control.Validation;
 
 /**
  *
  */
 public interface MailService {
-    Validation<List<Object>, Void> send(Mail mail);
-
-    Validation<List<Object>, Void> sendValid(Validation<List<Object>, Mail> mail);
+    Validation<Seq<String>, Void> send(Mail mail);
 }

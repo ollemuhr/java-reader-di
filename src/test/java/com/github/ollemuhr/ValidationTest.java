@@ -1,81 +1,85 @@
 package com.github.ollemuhr;
 
-import com.github.ollemuhr.validation.Validation;
+import io.vavr.collection.Seq;
+import io.vavr.control.Validation;
 import org.junit.Test;
-
-import java.util.List;
-
-import static com.github.ollemuhr.validation.Validation.failure;
-import static com.github.ollemuhr.validation.Validation.success;
 
 /**
  *
  */
-public class ValidationTest {
-    @Test
-    public void testValidation() {
-        Person person = new Person("Mario", 40);
-        Validation<List<Object>, Person> validatedPerson =
-                success(person).failList()
-                        .flatMap(ValidationTest::validAge)
-                        .flatMap(ValidationTest::validName);
+public class ValidationTest
+{
+	@Test
+	public void testValidation()
+	{
+		Validation<Seq<String>, Person> validatedPerson =
+			Person.valid("Mario", 40);
+		System.out.println(validatedPerson);
+	}
 
-        System.out.println(validatedPerson);
-        System.out.println(validatedPerson.value());
-    }
+	@Test
+	public void testValidationFail()
+	{
+		Validation<Seq<String>, Person> validatedPerson =
+			Person.valid("olle", 150);
+		System.out.println(validatedPerson);
+	}
 
-    @Test
-    public void testValidationFail() {
-        Person person = new Person("olle", 150);
-        Validation<List<Object>, Person> validatedPerson =
-                success(person).failList()
-                        .flatMap(ValidationTest::validAge)
-                        .flatMap(ValidationTest::validName);
+	public static Validation<String, Integer> validAge(int a)
+	{
+		return isValidAge(a) ? Validation.valid(a) : Validation.invalid("Age must be less than 130");
+	}
 
-        System.out.println(validatedPerson);
-        System.out.println(validatedPerson.value());
-        System.out.println(validatedPerson.failure());
-    }
+	public static boolean isValidAge(int age)
+	{
+		return age < 130;
+	}
 
-    public static Validation<String, Person> validAge(Person p) {
-        return isValidAge(p) ? success(p) : failure("Age must be less than 130", p);
-    }
+	public static Validation<String, String> validName(String s)
+	{
+		return isValidName(s) ? Validation.valid(s) : Validation.invalid("Name must start with an uppercase");
+	}
 
-    public static boolean isValidAge(Person p) {
-        return p.getAge() < 130;
-    }
+	public static boolean isValidName(String s)
+	{
+		return Character.isUpperCase(s.charAt(0));
+	}
 
-    public static Validation<String, Person> validName(Person p) {
-        return isValidName(p) ? success(p) :  failure("Name must start with an uppercase", p);
-    }
+	public static class Person
+	{
+		private final String name;
+		private final int age;
 
-    public static boolean isValidName(Person p) {
-        return Character.isUpperCase(p.getName().charAt(0));
-    }
+		private Person(String name, int age)
+		{
+			this.name = name;
+			this.age = age;
+		}
 
-    public static class Person {
-        private final String name;
-        private final int age;
+		public static Validation<Seq<String>, Person> valid(final String name, final int age)
+		{
+			return validName(name)
+				.combine(validAge(age))
+				.ap(Person::new);
+		}
 
-        public Person(String name, int age) {
-            this.name = name;
-            this.age = age;
-        }
+		public int getAge()
+		{
+			return age;
+		}
 
-        public int getAge() {
-            return age;
-        }
+		public String getName()
+		{
+			return name;
+		}
 
-        public String getName() {
-            return name;
-        }
-
-        @Override
-        public String toString() {
-            return "Person{" +
-                    "name='" + name + '\'' +
-                    ", age=" + age +
-                    '}';
-        }
-    }
+		@Override
+		public String toString()
+		{
+			return "Person{" +
+				"name='" + name + '\'' +
+				", age=" + age +
+				'}';
+		}
+	}
 }

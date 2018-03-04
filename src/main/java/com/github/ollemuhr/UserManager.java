@@ -1,9 +1,11 @@
 package com.github.ollemuhr;
 
-import com.github.ollemuhr.validation.Validation;
+import com.github.ollemuhr.user.User;
+import io.vavr.collection.Seq;
+import io.vavr.control.Try;
+import io.vavr.control.Validation;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiFunction;
@@ -13,11 +15,6 @@ import java.util.function.Function;
  *
  */
 public class UserManager implements Users, Mailer {
-
-    public Reader<Config, Optional<String>> userEmail(final Integer id) {
-        return getUserOpt(id).map(opt -> opt.map(User::getEmail));
-    }
-
     private BiFunction<User, User, Map<String, String>> toMap = (user, boss) -> {
         final Map<String, String> m = new HashMap<>();
         m.put("fullname", user.getFirstName() + " " + user.getLastName());
@@ -26,42 +23,32 @@ public class UserManager implements Users, Mailer {
         return m;
     };
 
-    public Reader<Config, Map<String, String>> userInfo(final String username) {
-        return findUser(username).flatMap(u ->
-                        getUser(u.getSupervisorId()).map(boss ->
-                                toMap.apply(u, boss))
-        );
+    public Configured<Config, Optional<Map<String, String>>> userInfo(final String username) {
+        return new Configured<>(config ->
+                findUser(username).apply(config)
+                        .flatMap(u -> getUser(u.getSupervisorId()).apply(config)
+                                .map(boss -> toMap.apply(u, boss))));
     }
 
-    /**
-     * Little more complex
-     * and it is getting messy.
-     *
-     * @param username
-     * @return
-     */
-    public Reader<Config, Optional<Map<String, String>>> userInfoOpt(final String username) {
-        return findUserOpt(username).flatMap(userOpt ->
-                userOpt.map(user ->
-                        getUserOpt(user.getSupervisorId()).map(bossOpt ->
-                                bossOpt.map(boss ->
-                                        toMap.apply(user, boss))))
-                        .orElse(new Reader<>(c -> Optional.empty())));
+    public Configured<Config, Optional<User>> findBossOf(final String username) {
+        return new Configured<>(config ->
+                findUser(username).apply(config)
+                        .flatMap(u ->
+                                getUser(u.getSupervisorId()).apply(config)));
     }
 
-    public Reader<Config, User> findBossOf(final String username) {
-        return findUser(username).flatMap(u ->
-                getUser(u.getSupervisorId()));
+    public C<User> createValidAndMail(final User user) {
+        return new C<>(config -> {
+            final Validation<Seq<String>, User> valid = create(user).apply(config);
+            Try.of(() -> valid.flatMap(u -> send(u.mail()).apply(config)))
+                    .onFailure(t -> System.out.println(t.getMessage()));
+            return valid;
+        });
     }
 
-    public Reader<Config, Validation<List<Object>, User>> createValidAndMail(final User user) {
-
-        final Function<User, Mail> mail = u -> new Mail("the mailer", u.getEmail(), "your account", "your id: " + u.getId());
-
-        return createValid(User.validate(user))
-                .flatMap(v ->
-                        sendValid(v.map(mail)).map(x -> v));
-
+    public class C<T> extends Configured<Config, Validation<Seq<String>, T>> {
+        public C(Function<Config, Validation<Seq<String>, T>> run) {
+            super(run);
+        }
     }
-
 }
