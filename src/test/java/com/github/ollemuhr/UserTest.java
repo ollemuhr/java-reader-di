@@ -102,12 +102,12 @@ class TestConf {
 public class UserTest extends TestConf {
     @Test
     public void testUserInfo() {
-        assertEquals("Mrone Oner", app().getUserInfo("mrtwo").get().get("boss"));
+        assertEquals("Mrone Oner", app().getUserInfo(u2.getUsername()).get().get("boss"));
     }
 
     @Test
     public void testBoss() {
-        assertEquals("Mrone", app().findBossOf("mrtwo").get().getFirstName());
+        assertEquals("Mrone", app().findBossOf(u2.getUsername()).get().getFirstName());
     }
 
     @Test
@@ -122,7 +122,7 @@ public class UserTest extends TestConf {
 
     @Test
     public void testByUsername() {
-        assertEquals("mrtwo", app().findByUsername("mrtwo").get().getUsername());
+        assertEquals("mrtwo", app().findByUsername(u2.getUsername()).get().getUsername());
     }
 
     @Test
@@ -134,9 +134,8 @@ public class UserTest extends TestConf {
 
     @Test
     public void testUpdate() {
-        final User u = app().findById(u1.getId()).get();
         final Validation<Seq<String>, User> newUsername =
-                User.valid(u.getId(), u.getSupervisorId(), u.getFirstName(), u.getLastName(), u.getEmail(), "newUsername");
+                User.valid(u1.getId(), u1.getSupervisorId(), u1.getFirstName(), u1.getLastName(), u1.getEmail(), "newUsername");
 
         final Validation<Seq<String>, User> updated = newUsername.flatMap(user -> app().update(user));
 
@@ -146,9 +145,8 @@ public class UserTest extends TestConf {
 
     @Test
     public void testUpdateNonExist() {
-        final User u = app().findById(1).get();
         final Validation<Seq<String>, User> newUsername =
-                User.valid(-1, u.getSupervisorId(), u.getFirstName(), u.getLastName(), u.getEmail(), "newUsername");
+                User.valid(-1, u1.getSupervisorId(), u1.getFirstName(), u1.getLastName(), u1.getEmail(), "newUsername");
 
         assertTrue(newUsername.isValid());
 
@@ -164,12 +162,14 @@ public class UserTest extends TestConf {
                     return null;
                 }
         );
-        assertEquals(u.getUsername(), app().findById(1).get().getUsername());
     }
 
     @Test
     public void createAndMail() {
-        final Validation<Seq<String>, User> valid = app().createValidAndMail(User.valid(null, 1, "Youve", "Gotmail", "a@b.se", "youvegotmail").get());
+        final Validation<Seq<String>, User> valid =
+                app().createValidAndMail(
+                        User.valid(null, 1, "Youve", "Gotmail", "a@b.se", "youvegotmail")
+                                .get());
         assertTrue(valid.isValid());
         valid.fold(e -> {
                     fail();
@@ -198,8 +198,7 @@ public class UserTest extends TestConf {
 
     @Test
     public void testCreateSameUser() {
-        final User found = app().findById(1).get();
-        final Validation<Seq<String>, User> invalid = app().create(found);
+        final Validation<Seq<String>, User> invalid = app().create(u1);
 
         assertFalse(invalid.isValid());
 
