@@ -2,18 +2,40 @@ package com.github.ollemuhr;
 
 import io.vavr.collection.Seq;
 import io.vavr.control.Validation;
-
 import java.util.Optional;
 
-/**
- *
- */
+/** The user db access. */
 public interface UserRepository {
-    Optional<User> get(Integer id);
 
-    Optional<User> find(String username);
+  /**
+   * Get a user by id.
+   *
+   * @param id the id.
+   * @return the user.
+   */
+  Optional<User> get(Integer id);
 
-    Validation<Seq<String>, User> create(User user);
+  /**
+   * Find a user by username.
+   *
+   * @param username the username.
+   * @return the user.
+   */
+  Optional<User> find(String username);
 
-    Validation<Seq<String>, User> update(User user);
+  /**
+   * Store a user in db.
+   *
+   * @param user the user.
+   * @return the stored user.
+   */
+  Validation<Seq<String>, User> create(User user);
+
+  /**
+   * Update a user.
+   *
+   * @param user the updated user.
+   * @return the updated user.
+   */
+  Validation<Seq<String>, User> update(User user);
 }
