@@ -1,9 +1,9 @@
 package com.github.ollemuhr;
 
 import io.vavr.collection.Seq;
+import io.vavr.control.Option;
 import io.vavr.control.Validation;
 import java.util.Map;
-import java.util.Optional;
 
 /** Showing how to apply config. */
 public class TestApp {
@@ -16,23 +16,23 @@ public class TestApp {
     this.config = config;
   }
 
-  public Optional<User> findById(final Integer id) {
+  public Option<User> findById(final Integer id) {
     return userManager.getUser(id).apply(config);
   }
 
-  public Optional<User> findByUsername(final String username) {
+  public Option<User> findByUsername(final String username) {
     return userManager.findUser(username).apply(config);
   }
 
-  Optional<String> getUserMail(final Integer id) {
+  Option<String> getUserMail(final Integer id) {
     return userManager.getUser(id).map(user -> user.map(User::getEmail)).apply(config);
   }
 
-  public Optional<Map<String, String>> getUserInfo(final String username) {
+  public Option<Map<String, String>> getUserInfo(final String username) {
     return userManager.userInfo(username).apply(config);
   }
 
-  public Optional<User> findBossOf(final String username) {
+  public Option<User> findBossOf(final String username) {
     return userManager.findBossOf(username).apply(config);
   }
 

@@ -11,12 +11,14 @@ import io.vavr.CheckedFunction0;
 import io.vavr.collection.List;
 import io.vavr.collection.Seq;
 import io.vavr.collection.Vector;
+import io.vavr.control.Option;
 import io.vavr.control.Try;
 import io.vavr.control.Validation;
+import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -43,7 +45,7 @@ public class UserTest {
 
   @Test
   public void testUserEmail() {
-    assertEquals("Mrone@Oner.se", app.getUserMail(u1.getId()).orElse("not found"));
+    assertEquals("Mrone@Oner.se", app.getUserMail(u1.getId()).getOrElse("not found"));
   }
 
   @Test
@@ -62,6 +64,32 @@ public class UserTest {
         User.valid(null, 2, "Mrthree", "Threer", "Mrthree@Threer", "mrthree")
             .flatMap(user -> app.create(user));
     assertEquals("Mrthree@Threer", stored.get().getEmail());
+  }
+
+  @Test
+  public void testCreateBoom() {
+    final Validation<Seq<String>, User> valid =
+        User.valid(null, u1.getId(), "Boomer", "Boomer", "b@b.se", "boomer");
+
+    final Try<Validation<Seq<String>, User>> boom =
+        Try.of(() -> valid.flatMap(user -> app.create(user)));
+
+    final String result = boom.map(assertNoValidation()).recover(Throwable::getMessage).get();
+
+    assertEquals("boom", result);
+  }
+
+  private static <E, T> Function<Validation<E, T>, String> assertNoValidation() {
+    return user ->
+        user.fold(
+            e -> {
+              fail();
+              return null;
+            },
+            u -> {
+              fail();
+              return (String) null;
+            });
   }
 
   @Test
@@ -195,50 +223,55 @@ public class UserTest {
         public UserRepository getUserRepository() {
           return new UserRepository() {
             @Override
-            public Optional<User> get(final Integer id) {
-              return Optional.ofNullable(byId.get(id));
+            public Option<User> get(final Integer id) {
+              return Option.of(byId.get(id));
             }
 
             @Override
-            public Optional<User> find(final String username) {
-              return byId.values()
-                  .stream()
-                  .filter(u -> u.getUsername().equals(username))
-                  .findFirst();
+            public Option<User> find(final String username) {
+              return Option.ofOptional(
+                  byId.values().stream().filter(u -> u.getUsername().equals(username)).findFirst());
             }
 
             @Override
             public Validation<Seq<String>, User> create(final User user) {
-              return Try.<Validation<Seq<String>, User>>of(() -> Validation.valid(store(user)))
-                  .recover(e -> Validation.invalid(Vector.of(e.getMessage())))
+              return Try.of(() -> store(user))
+                  .map(Validation::<Seq<String>, User>valid)
+                  .recover(
+                      UserExistsException.class, e -> Validation.invalid(Vector.of(e.getMessage())))
                   .get();
             }
 
             @Override
             public Validation<Seq<String>, User> update(final User user) {
-              return Try.of(updateUser(user))
-                  .recover(e -> Validation.invalid(List.of(e.getMessage())))
+              return Try.of(tryUpdate(user))
+                  .recover(
+                      UserExistsException.class, e -> Validation.invalid(List.of(e.getMessage())))
                   .get();
             }
 
-            private CheckedFunction0<Validation<Seq<String>, User>> updateUser(final User user) {
+            private CheckedFunction0<Validation<Seq<String>, User>> tryUpdate(final User user) {
               return () ->
-                  Validation.valid(
-                      get(user.getId())
-                          .map(
-                              found -> {
-                                byId.put(user.getId(), user);
-                                return user;
-                              })
-                          .orElseThrow(() -> new RuntimeException("user.not.exists")));
+                  get(user.getId())
+                      .map(putUser(user))
+                      .map(Validation::<Seq<String>, User>valid)
+                      .getOrElseThrow(() -> new UserExistsException("user.not.exists"));
             }
 
-            private User store(final User user) {
-              find(user.getUsername())
-                  .ifPresent(
-                      u -> {
-                        throw new RuntimeException("user.unique.constraint");
-                      });
+            private Function<User, User> putUser(final User user) {
+              return __ -> {
+                byId.put(user.getId(), user);
+                return user;
+              };
+            }
+
+            private User store(final User user) throws SQLException {
+              if (find(user.getUsername()).isDefined()) {
+                throw new UserExistsException("user.unique.constraint");
+              }
+              if ("boomer".equals(user.getUsername())) {
+                throw new SQLException("boom");
+              }
               final User toInsert = user.withId(idGen.incrementAndGet());
               byId.put(toInsert.getId(), toInsert);
               return toInsert;

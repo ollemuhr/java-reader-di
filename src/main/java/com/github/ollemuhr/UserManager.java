@@ -1,11 +1,11 @@
 package com.github.ollemuhr;
 
 import io.vavr.collection.Seq;
+import io.vavr.control.Option;
 import io.vavr.control.Try;
 import io.vavr.control.Validation;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 import java.util.function.BiFunction;
 
 /** Impl with some extra 'convenience'. */
@@ -26,7 +26,7 @@ public class UserManager implements Users, Mailer {
    * @param username the username.
    * @return some user info.
    */
-  public Configured<Config, Optional<Map<String, String>>> userInfo(final String username) {
+  public Configured<Config, Option<Map<String, String>>> userInfo(final String username) {
     return new Configured<>(
         config ->
             findUser(username)
@@ -44,7 +44,7 @@ public class UserManager implements Users, Mailer {
    * @param username the user with a boss.
    * @return the boss.
    */
-  public Configured<Config, Optional<User>> findBossOf(final String username) {
+  public Configured<Config, Option<User>> findBossOf(final String username) {
     return new Configured<>(
         config ->
             findUser(username)

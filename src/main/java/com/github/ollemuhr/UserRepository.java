@@ -1,8 +1,8 @@
 package com.github.ollemuhr;
 
 import io.vavr.collection.Seq;
+import io.vavr.control.Option;
 import io.vavr.control.Validation;
-import java.util.Optional;
 
 /** The user db access. */
 public interface UserRepository {
@@ -13,7 +13,7 @@ public interface UserRepository {
    * @param id the id.
    * @return the user.
    */
-  Optional<User> get(Integer id);
+  Option<User> get(Integer id);
 
   /**
    * Find a user by username.
@@ -21,7 +21,7 @@ public interface UserRepository {
    * @param username the username.
    * @return the user.
    */
-  Optional<User> find(String username);
+  Option<User> find(String username);
 
   /**
    * Store a user in db.

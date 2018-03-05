@@ -1,17 +1,17 @@
 package com.github.ollemuhr;
 
 import io.vavr.collection.Seq;
+import io.vavr.control.Option;
 import io.vavr.control.Validation;
-import java.util.Optional;
 
 /** Configured user repository methods. */
 public interface Users {
 
-  default Configured<Config, Optional<User>> getUser(final Integer id) {
+  default Configured<Config, Option<User>> getUser(final Integer id) {
     return new Configured<>(config -> config.getUserRepository().get(id));
   }
 
-  default Configured<Config, Optional<User>> findUser(final String username) {
+  default Configured<Config, Option<User>> findUser(final String username) {
     return new Configured<>(config -> config.getUserRepository().find(username));
   }
 
