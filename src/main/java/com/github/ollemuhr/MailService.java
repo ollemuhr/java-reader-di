@@ -4,7 +4,7 @@ import io.vavr.collection.Seq;
 import io.vavr.control.Validation;
 
 /**
- * Can send a toMail.
+ * Can send a mail.
  */
 public interface MailService {
     Validation<Seq<String>, Void> send(Mail mail);

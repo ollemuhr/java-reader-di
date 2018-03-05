@@ -6,7 +6,7 @@ import io.vavr.control.Validation;
 import java.util.Objects;
 
 /**
- * Configured toMail sender.
+ * Configured mail sender.
  */
 public interface Mailer {
     default Configured<Config, Validation<Seq<String>, Void>> send(final User user) {

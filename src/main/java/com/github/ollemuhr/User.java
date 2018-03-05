@@ -9,13 +9,18 @@ import java.util.regex.Pattern;
  * A user that can only be created using static 'valid' method.
  */
 public class User {
-
     private final Integer id;
+
     private final String firstName;
     private final String lastName;
     private final String email;
     private final Integer supervisorId;
     private final String username;
+
+    public static Validation<Seq<String>, User> valid(Integer id, Integer supervisorId, String firstName, String lastName, String email, String username) {
+        return Valid.user(
+                id, supervisorId, firstName, lastName, email, username);
+    }
 
     private User(
             final Integer id,
@@ -78,11 +83,9 @@ public class User {
                 '}';
     }
 
-    public static Validation<Seq<String>, User> valid(Integer id, Integer supervisorId, String firstName, String lastName, String email, String username) {
-        return Valid.user(
-                id, supervisorId, firstName, lastName, email, username);
-    }
-
+    /**
+     * Some silly validation for a User.
+     */
     private interface Valid {
         Pattern emailPattern = Pattern.compile("^[A-Za-z0-9+_.-]+@(.+)$");
 
