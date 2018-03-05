@@ -1,6 +1,5 @@
-package com.github.ollemuhr.user;
+package com.github.ollemuhr;
 
-import com.github.ollemuhr.Mail;
 import io.vavr.collection.Seq;
 import io.vavr.control.Validation;
 
@@ -66,14 +65,6 @@ public class User {
     public Integer getId() {
         return id;
     }
-
-    public Mail mail() {
-        return new Mail("the mailer",
-                this.getEmail(),
-                "your account",
-                "your id: " + this.getId());
-    }
-
 
     @Override
     public String toString() {

@@ -18,10 +18,10 @@ public class Configured<C, A> {
     }
 
     public <B> Configured<C, B> map(Function<? super A, ? extends B> f) {
-        return new Configured<>((C c) -> f.apply(run.apply(c)));
+        return new Configured<>((C c) -> f.apply(apply(c)));
     }
 
     public <B> Configured<C, B> flatMap(final Function<? super A, ? extends Configured<C, ? extends B>> f) {
-        return new Configured<>(c -> f.apply(run.apply(c)).apply(c));
+        return new Configured<>(c -> f.apply(apply(c)).apply(c));
     }
 }

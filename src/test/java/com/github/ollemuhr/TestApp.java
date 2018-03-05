@@ -1,6 +1,5 @@
 package com.github.ollemuhr;
 
-import com.github.ollemuhr.user.User;
 import io.vavr.collection.Seq;
 import io.vavr.control.Validation;
 
@@ -10,13 +9,13 @@ import java.util.Optional;
 /**
  *
  */
-public class TestAppl {
+public class TestApp {
 
     private final Config config;
 
     private final UserManager userManager = new UserManager();
 
-    public TestAppl(final Config config) {
+    public TestApp(final Config config) {
         this.config = config;
     }
 

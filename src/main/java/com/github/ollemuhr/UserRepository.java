@@ -1,6 +1,5 @@
 package com.github.ollemuhr;
 
-import com.github.ollemuhr.user.User;
 import io.vavr.collection.Seq;
 import io.vavr.control.Validation;
 
