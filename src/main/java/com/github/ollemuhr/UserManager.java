@@ -53,7 +53,7 @@ public class UserManager implements Users, Mailer {
   }
 
   /**
-   * Stores a new user in db and sends a side affecting email to the user.
+   * Stores a new user in db and sends a 'side effecting' email to the user.
    *
    * @param user the user.
    * @return the stored user.
