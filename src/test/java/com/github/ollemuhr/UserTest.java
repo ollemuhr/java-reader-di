@@ -15,90 +15,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.junit.Assert.*;
 
 /**
- *
+ * Testing it.
  */
-class TestConf {
-    final AtomicInteger idGen = new AtomicInteger(0);
-    final User u1 = User.valid(idGen.incrementAndGet(), -1, "Mrone", "Oner", "Mrone@Oner.se", "mrone").get();
-    final User u2 = User.valid(idGen.incrementAndGet(), u1.getId(), "Mrtwo", "Twoer", "Mrtwo@Twoer.se", "mrtwo").get();
-    private final Map<Integer, User> byId = init();
-
-    private Map<Integer, User> init() {
-        final Map<Integer, User> m = new HashMap<>();
-        m.put(u1.getId(), u1);
-        m.put(u2.getId(), u2);
-        return m;
-    }
-
-    Config config() {
-        return new Config() {
-            @Override
-            public UserRepository getUserRepository() {
-                return new UserRepository() {
-                    @Override
-                    public Optional<User> get(final Integer id) {
-                        return Optional.ofNullable(byId.get(id));
-                    }
-
-                    @Override
-                    public Optional<User> find(final String username) {
-                        return byId.values().stream()
-                                .filter(u -> u.getUsername().equals(username))
-                                .findFirst();
-                    }
-
-                    @Override
-                    public Validation<Seq<String>, User> create(final User user) {
-                        return Try.<Validation<Seq<String>, User>>of(() -> Validation.valid(store(user)))
-                                .recover(e -> Validation.invalid(Vector.of(e.getMessage())))
-                                .get();
-                    }
-
-                    @Override
-                    public Validation<Seq<String>, User> update(final User user) {
-                        return Try.<Validation<Seq<String>, User>>of(() -> Validation.valid(get(user.getId())
-                                .map(found -> {
-                                    byId.put(user.getId(), user);
-                                    return user;
-                                }).orElseThrow(() -> new RuntimeException("user.not.exists"))))
-                                .recover(e -> Validation.invalid(List.of(e.getMessage()))).get();
-                    }
-
-                    private User store(final User user) {
-                        find(user.getUsername()).ifPresent(u -> {
-                            throw new RuntimeException("user.unique.constraint");
-                        });
-                        final User toInsert = user.withId(idGen.incrementAndGet());
-                        byId.put(toInsert.getId(), toInsert);
-                        return toInsert;
-                    }
-                };
-            }
-
-            void print(String s, String... arg) {
-                System.out.println(String.format(s, arg));
-            }
-
-            void print(String s) {
-                System.out.println(s);
-            }
-
-            @Override
-            public MailService getMailService() {
-                return m -> {
-                    print("pretending to send a mail:");
-                    print("from:\t\t%s", m.getFrom());
-                    print("to:\t\t\t%s", m.getTo());
-                    print("subject:\t%s", m.getSubject());
-                    print("message:\t%s", m.getMessage());
-
-                    return null;
-                };
-            }
-        };
-    }
-}
-
 public class UserTest extends TestConf {
     @Test
     public void testUserInfo() {
@@ -214,5 +132,91 @@ public class UserTest extends TestConf {
 
     private TestApp app() {
         return new TestApp(config());
+    }
+}
+
+/**
+ * Fake implementations of UserRepository and MailService.
+ */
+class TestConf {
+    final AtomicInteger idGen = new AtomicInteger(0);
+    final User u1 = User.valid(idGen.incrementAndGet(), -1, "Mrone", "Oner", "Mrone@Oner.se", "mrone").get();
+    final User u2 = User.valid(idGen.incrementAndGet(), u1.getId(), "Mrtwo", "Twoer", "Mrtwo@Twoer.se", "mrtwo").get();
+
+    private final Map<Integer, User> byId = init();
+
+    private Map<Integer, User> init() {
+        final Map<Integer, User> m = new HashMap<>();
+        m.put(u1.getId(), u1);
+        m.put(u2.getId(), u2);
+        return m;
+    }
+
+    Config config() {
+        return new Config() {
+            @Override
+            public UserRepository getUserRepository() {
+                return new UserRepository() {
+                    @Override
+                    public Optional<User> get(final Integer id) {
+                        return Optional.ofNullable(byId.get(id));
+                    }
+
+                    @Override
+                    public Optional<User> find(final String username) {
+                        return byId.values().stream()
+                                .filter(u -> u.getUsername().equals(username))
+                                .findFirst();
+                    }
+
+                    @Override
+                    public Validation<Seq<String>, User> create(final User user) {
+                        return Try.<Validation<Seq<String>, User>>of(() -> Validation.valid(store(user)))
+                                .recover(e -> Validation.invalid(Vector.of(e.getMessage())))
+                                .get();
+                    }
+
+                    @Override
+                    public Validation<Seq<String>, User> update(final User user) {
+                        return Try.<Validation<Seq<String>, User>>of(() -> Validation.valid(get(user.getId())
+                                .map(found -> {
+                                    byId.put(user.getId(), user);
+                                    return user;
+                                }).orElseThrow(() -> new RuntimeException("user.not.exists"))))
+                                .recover(e -> Validation.invalid(List.of(e.getMessage()))).get();
+                    }
+
+                    private User store(final User user) {
+                        find(user.getUsername()).ifPresent(u -> {
+                            throw new RuntimeException("user.unique.constraint");
+                        });
+                        final User toInsert = user.withId(idGen.incrementAndGet());
+                        byId.put(toInsert.getId(), toInsert);
+                        return toInsert;
+                    }
+                };
+            }
+
+            void print(String s, String... arg) {
+                System.out.println(String.format(s, arg));
+            }
+
+            void print(String s) {
+                System.out.println(s);
+            }
+
+            @Override
+            public MailService getMailService() {
+                return m -> {
+                    print("pretending to send a toMail:");
+                    print("from:\t\t%s", m.getFrom());
+                    print("to:\t\t\t%s", m.getTo());
+                    print("subject:\t%s", m.getSubject());
+                    print("message:\t%s", m.getMessage());
+
+                    return null;
+                };
+            }
+        };
     }
 }

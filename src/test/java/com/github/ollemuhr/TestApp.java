@@ -7,7 +7,7 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- *
+ * Showing how to apply config.
  */
 public class TestApp {
 

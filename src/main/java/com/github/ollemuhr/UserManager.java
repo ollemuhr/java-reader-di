@@ -10,7 +10,7 @@ import java.util.Optional;
 import java.util.function.BiFunction;
 
 /**
- *
+ * Impl with some extra 'convenience'.
  */
 public class UserManager implements Users, Mailer {
     private BiFunction<User, User, Map<String, String>> toMap = (user, boss) -> {

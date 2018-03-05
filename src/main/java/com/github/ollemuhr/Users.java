@@ -6,8 +6,8 @@ import io.vavr.control.Validation;
 import java.util.Optional;
 
 /**
+ *  Configured user repository methods.
  */
-
 public interface Users {
     default Configured<Config, Optional<User>> getUser(final Integer id) {
         return new Configured<>(config -> config.getUserRepository().get(id));

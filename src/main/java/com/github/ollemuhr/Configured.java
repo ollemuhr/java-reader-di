@@ -4,6 +4,8 @@ import java.util.function.Function;
 
 /**
  * A 'reader monad'.
+ * Inspiration: https://gist.github.com/danhyun/fda27d5682b7dbed151b
+ * In Kotlin: https://medium.com/@JorgeCastilloPr/kotlin-dependency-injection-with-the-reader-monad-7d52f94a482e
  */
 public class Configured<C, A> {
 

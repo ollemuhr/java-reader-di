@@ -6,7 +6,7 @@ import io.vavr.control.Validation;
 import java.util.regex.Pattern;
 
 /**
- *
+ * A user that can only be created using static 'valid' method.
  */
 public class User {
 
