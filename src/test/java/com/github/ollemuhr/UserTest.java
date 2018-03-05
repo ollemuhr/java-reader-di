@@ -35,12 +35,12 @@ public class UserTest extends TestConf {
 
     @Test
     public void testById() {
-        assertEquals("mrone", app().findById(u1.getId()).get().getUsername());
+        assertEquals(u1.getUsername(), app().findById(u1.getId()).get().getUsername());
     }
 
     @Test
     public void testByUsername() {
-        assertEquals("mrtwo", app().findByUsername(u2.getUsername()).get().getUsername());
+        assertEquals(u2.getUsername(), app().findByUsername(u2.getUsername()).get().getUsername());
     }
 
     @Test
