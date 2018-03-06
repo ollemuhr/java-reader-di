@@ -74,22 +74,9 @@ public class UserTest {
     final Try<Validation<Seq<String>, User>> boom =
         Try.of(() -> valid.flatMap(user -> app.create(user)));
 
-    final String result = boom.map(assertNoValidation()).recover(Throwable::getMessage).get();
+    final String result = boom.map(__ -> "Nothing here").recover(Throwable::getMessage).get();
 
     assertEquals("boom", result);
-  }
-
-  private static <E, T> Function<Validation<E, T>, String> assertNoValidation() {
-    return user ->
-        user.fold(
-            e -> {
-              fail();
-              return null;
-            },
-            u -> {
-              fail();
-              return (String) null;
-            });
   }
 
   @Test

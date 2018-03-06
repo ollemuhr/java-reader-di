@@ -2,6 +2,7 @@ package com.github.ollemuhr;
 
 import io.vavr.collection.Seq;
 import io.vavr.control.Validation;
+import java.util.Objects;
 import java.util.regex.Pattern;
 
 /** A user that can only be created using static 'valid' method. */
@@ -77,6 +78,28 @@ public class User {
 
   public Integer getId() {
     return id;
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(id, firstName, lastName, email, supervisorId, username);
+  }
+
+  @Override
+  public boolean equals(final Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (obj == null || getClass() != obj.getClass()) {
+      return false;
+    }
+    final User other = (User) obj;
+    return Objects.equals(this.id, other.id)
+        && Objects.equals(this.firstName, other.firstName)
+        && Objects.equals(this.lastName, other.lastName)
+        && Objects.equals(this.email, other.email)
+        && Objects.equals(this.supervisorId, other.supervisorId)
+        && Objects.equals(this.username, other.username);
   }
 
   @Override
