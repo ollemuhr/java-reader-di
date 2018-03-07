@@ -7,7 +7,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import io.vavr.CheckedFunction0;
 import io.vavr.collection.List;
 import io.vavr.collection.Seq;
 import io.vavr.collection.Vector;
@@ -231,18 +230,17 @@ public class UserTest {
 
             @Override
             public Validation<Seq<String>, User> update(final User user) {
-              return Try.of(tryUpdate(user))
+              return Try.of(() -> tryUpdate(user))
+                  .map(Validation::<Seq<String>, User>valid)
                   .recover(
                       UserExistsException.class, e -> Validation.invalid(List.of(e.getMessage())))
                   .get();
             }
 
-            private CheckedFunction0<Validation<Seq<String>, User>> tryUpdate(final User user) {
-              return () ->
-                  get(user.getId())
-                      .map(putUser(user))
-                      .map(Validation::<Seq<String>, User>valid)
-                      .getOrElseThrow(() -> new UserExistsException("user.not.exists"));
+            private User tryUpdate(final User user) {
+              return get(user.getId())
+                  .map(putUser(user))
+                  .getOrElseThrow(() -> new UserExistsException("user.not.exists"));
             }
 
             private Function<User, User> putUser(final User user) {

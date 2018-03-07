@@ -32,10 +32,10 @@ public class UserManager implements Users, Mailer {
             findUser(username)
                 .apply(config)
                 .flatMap(
-                    u ->
-                        getUser(u.getSupervisorId())
+                    user ->
+                        getUser(user.getSupervisorId())
                             .apply(config)
-                            .map(boss -> toMap.apply(u, boss))));
+                            .map(boss -> toMap.apply(user, boss))));
   }
 
   /**
@@ -53,7 +53,7 @@ public class UserManager implements Users, Mailer {
   }
 
   /**
-   * Stores a new user in db and sends a 'side effecting' email to the user.
+   * Stores a new user in db and sends an email to the user as a side effect.
    *
    * @param user the user.
    * @return the stored user.
