@@ -3,6 +3,9 @@ master:
     - image: maven:3.6.0-jdk-8-alpine
       commands:
         - mvn install
+      secrets:
+        - hej
+        - san
 branch:
   steps:
     - image: maven:3.6.0-jdk-8-alpine
