@@ -2,15 +2,7 @@ master:
   steps:
     - image: maven:3.6.0-jdk-8-alpine
       commands:
-        - echo 'start step0'
-        - sleep 5
-        - echo 'end step0'
-    - image: maven:3.6.0-jdk-8-alpine
-      commands:
-        - echo 'start step1'
-        - sleep 5
         - mvn install
-        - echo 'end step1'
 branch:
   steps:
     - image: maven:3.6.0-jdk-8-alpine
