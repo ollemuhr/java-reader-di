@@ -1,12 +1,27 @@
 package com.github.ollemuhr;
 
-import io.vavr.collection.Seq;
-import io.vavr.control.Validation;
+import io.trane.future.Future;
 
 /** Can send a mail. */
 public interface MailService {
 
-  Validation<Seq<String>, Void> send(Mail mail);
+  default Future<Void> send(final Mail mail) {
+    return Future.<Void>apply(
+            () -> {
+              print("pretending to send an email:");
+              print("from:\t\t%s", mail.getFrom());
+              print("to:\t\t\t%s", mail.getTo());
+              print("subject:\t%s", mail.getSubject());
+              print("message:\t%s", mail.getMessage());
+              return null;
+            })
+        .onFailure(Throwable::printStackTrace)
+        .rescue(e -> Future.VOID);
+  }
+
+  private static void print(final String s, final String... args) {
+    System.out.println(String.format(s, args));
+  }
 
   class Mail {
 

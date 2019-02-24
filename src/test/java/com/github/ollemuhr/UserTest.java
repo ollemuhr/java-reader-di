@@ -1,86 +1,80 @@
 package com.github.ollemuhr;
 
-import static com.github.ollemuhr.UserTest.TestConf.u1;
-import static com.github.ollemuhr.UserTest.TestConf.u2;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
-import io.vavr.collection.List;
-import io.vavr.collection.Seq;
-import io.vavr.collection.Vector;
-import io.vavr.control.Option;
-import io.vavr.control.Try;
-import io.vavr.control.Validation;
-import java.sql.SQLException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Function;
-import org.junit.Before;
-import org.junit.Test;
+import io.trane.future.CheckedFutureException;
+import io.trane.future.Future;
+import java.time.Duration;
+import org.junit.jupiter.api.Test;
 
 /** Testing it. */
 @SuppressWarnings("ConstantConditions")
-public class UserTest {
+abstract class UserTest {
+
+  static final User u1 = User.valid(1L, null, "Mrone", "Oner", "Mrone@Oner.se", "mrone");
+  static final User u2 = User.valid(2L, 1L, "Mrtwo", "Twoer", "Mrtwo@Twoer.se", "mrtwo");
 
   private TestApp app;
 
-  @Before
-  public void before() {
-    this.app = app();
+  private Duration timeout = Duration.ofSeconds(1);
+
+  UserTest() {
+    app = app();
   }
 
   @Test
-  public void testUserInfo() {
-    assertEquals("Mrone Oner", app.getUserInfo(u2.getUsername()).get().get("boss"));
+  void testUserInfo() throws CheckedFutureException {
+    assertEquals("Mrone Oner", app.getUserInfo(u2.getUsername()).get(timeout).get().get("boss"));
   }
 
   @Test
-  public void testBoss() {
-    assertEquals("Mrone", app.findBossOf(u2.getUsername()).get().getFirstName());
+  void testBoss() throws CheckedFutureException {
+    assertEquals("Mrone", app.findBossOf(u2.getUsername()).get(timeout).get().getFirstName());
   }
 
   @Test
-  public void testUserEmail() {
-    assertEquals("Mrone@Oner.se", app.getUserMail(u1.getId()).getOrElse("not found"));
+  void testUserEmail() throws CheckedFutureException {
+    assertEquals("Mrone@Oner.se", app.getUserMail(u1.getId()).get(timeout).get());
   }
 
   @Test
-  public void testById() {
-    assertEquals(u1.getUsername(), app.findById(u1.getId()).get().getUsername());
+  void testById() throws CheckedFutureException {
+    assertEquals(u1.getUsername(), app.findById(u1.getId()).get(timeout).get().getUsername());
   }
 
   @Test
-  public void testByUsername() {
-    assertEquals(u2.getUsername(), app.findByUsername(u2.getUsername()).get().getUsername());
+  void testByUsername() throws CheckedFutureException {
+    assertEquals(
+        u2.getUsername(), app.findByUsername(u2.getUsername()).get(timeout).get().getUsername());
   }
 
   @Test
-  public void testCreate() {
-    final Validation<Seq<String>, User> stored =
-        User.valid(null, 2, "Mrthree", "Threer", "Mrthree@Threer", "mrthree")
-            .flatMap(user -> app.create(user));
-    assertEquals("Mrthree@Threer", stored.get().getEmail());
+  void testCreate() throws CheckedFutureException {
+    final User toCreate = User.valid(null, 2L, "Mrthree", "Threer", "Mrthree@Threer", "mrthree");
+    final Future<User> stored = app.create(toCreate);
+
+    assertEquals("Mrthree@Threer", stored.get(timeout).getEmail());
   }
 
   @Test
-  public void testCreateBoom() {
-    final Validation<Seq<String>, User> valid =
-        User.valid(null, u1.getId(), "Boomer", "Boomer", "b@b.se", "boomer");
+  void testCreateBoom() throws CheckedFutureException {
+    final User valid = User.valid(null, u1.getId(), "Boomer", "Boomer", "b@b.se", "boomer");
 
-    final Try<Validation<Seq<String>, User>> boom =
-        Try.of(() -> valid.flatMap(user -> app.create(user)));
+    final Future<User> boom = app.create(valid);
 
-    final String result = boom.map(__ -> "Nothing here").recover(Throwable::getMessage).get();
+    final String result =
+        boom.map(__ -> "We should not go here")
+            .rescue(e -> Future.value(e.getMessage()))
+            .get(timeout);
 
-    assertEquals("boom", result);
+    assertTrue(result.contains("boom"));
   }
 
   @Test
-  public void testUpdate() {
-    final Validation<Seq<String>, User> newUsername =
+  void testUpdate() throws CheckedFutureException {
+    final User newUsername =
         User.valid(
             u1.getId(),
             u1.getSupervisorId(),
@@ -89,202 +83,80 @@ public class UserTest {
             u1.getEmail(),
             "newUsername");
 
-    final Validation<Seq<String>, User> updated = newUsername.flatMap(user -> app.update(user));
+    app.update(newUsername);
 
-    assertTrue(updated.isValid());
-    assertEquals("newUsername", app.findById(u1.getId()).get().getUsername());
+    assertEquals("newUsername", app.findById(u1.getId()).get(timeout).get().getUsername());
   }
 
   @Test
-  public void testUpdateNonExist() {
-    final Validation<Seq<String>, User> newUsername =
+  void testUpdateNonExist() throws CheckedFutureException {
+    final User newUsername =
         User.valid(
-            -1,
+            -1L,
             u1.getSupervisorId(),
             u1.getFirstName(),
             u1.getLastName(),
             u1.getEmail(),
             "newUsername");
 
-    assertTrue(newUsername.isValid());
+    final Future<User> updated = app.update(newUsername);
 
-    final Validation<Seq<String>, User> updated = newUsername.flatMap(user -> app.update(user));
-
-    assertFalse(updated.isValid());
-    updated.fold(
-        e -> {
-          assertEquals(1, e.size());
-          assertEquals("user.not.exists", e.head());
-          return null;
-        },
-        user -> {
-          fail();
-          return null;
-        });
+    updated
+        .onSuccess(__ -> fail())
+        .rescue(
+            e -> {
+              if (e instanceof ValidationError) {
+                var ve = (ValidationError) e;
+                assertEquals(1, ve.errors().size());
+                assertEquals("user.not.exists", ve.errors().get(0));
+              } else {
+                fail();
+              }
+              return Future.value(null);
+            })
+        .get(timeout);
   }
 
   @Test
-  public void createAndMail() {
-    final Validation<Seq<String>, User> valid =
-        app.createValidAndMail(
-            User.valid(null, 1, "Youve", "Gotmail", "a@b.se", "youvegotmail").get());
+  void createAndMail() throws CheckedFutureException {
+    final Future<User> userFuture =
+        app.createValidAndMail(User.valid(null, 1L, "Youve", "Gotmail", "a@b.se", "youvegotmail"));
 
-    assertTrue(valid.isValid());
+    final User valid = userFuture.get(timeout);
 
-    valid.fold(
-        e -> {
-          fail();
-          return null;
-        },
-        user -> {
-          assertTrue(user.getId() > 0);
-          return null;
-        });
+    assertTrue(valid.getId() > 0);
   }
 
   @Test
-  public void testCreateBadName() {
-    final Validation<Seq<String>, User> invalid =
-        User.valid(null, 1, "You've", "Gotm'ail", "a@b.se", "mrone");
-
-    assertFalse(invalid.isValid());
-
-    invalid.fold(
-        e -> {
-          assertEquals(2, e.size());
-          assertTrue(e.contains("user.firstName.invalid"));
-          assertTrue(e.contains("user.lastName.invalid"));
-          return null;
-        },
-        user -> {
-          fail();
-          return null;
-        });
+  void testCreateBadName() {
+    try {
+      User.valid(null, 1L, "You've", "Gotm'ail", "a@b.se", "mrone");
+      fail();
+    } catch (ValidationError e) {
+      assertEquals(2, e.errors().size());
+      assertTrue(e.errors().contains("user.firstName.invalid"));
+      assertTrue(e.errors().contains("user.lastName.invalid"));
+    }
   }
 
   @Test
-  public void testCreateSameUser() {
-    final Validation<Seq<String>, User> invalid = app.create(u1);
-
-    assertFalse(invalid.isValid());
-
-    invalid.fold(
-        e -> {
-          assertEquals(1, e.size());
-          assertEquals("user.unique.constraint", e.head());
-          return null;
-        },
-        user -> {
-          fail();
-          return null;
-        });
+  void testCreateSameUser() throws CheckedFutureException {
+    try {
+      app.create(u1).get(timeout);
+      fail();
+    } catch (ValidationError e) {
+      assertEquals(1, e.errors().size());
+      assertEquals("user.unique.constraint", e.errors().get(0));
+    }
   }
+
+  private static User user(final int i) {
+    return User.valid(null, 1L, "first", "last", i + "a@b.se", "username" + i);
+  }
+
+  abstract Config getConfig();
 
   private TestApp app() {
-    return new TestApp(new TestConf().config());
-  }
-
-  /** Fake implementations of UserRepository and MailService. */
-  static class TestConf {
-
-    static final AtomicInteger idGen = new AtomicInteger(0);
-    static final User u1 =
-        User.valid(idGen.incrementAndGet(), -1, "Mrone", "Oner", "Mrone@Oner.se", "mrone").get();
-    static final User u2 =
-        User.valid(idGen.incrementAndGet(), u1.getId(), "Mrtwo", "Twoer", "Mrtwo@Twoer.se", "mrtwo")
-            .get();
-
-    private final Map<Integer, User> byId = init();
-
-    private Map<Integer, User> init() {
-      final Map<Integer, User> m = new HashMap<>();
-      m.put(u1.getId(), u1);
-      m.put(u2.getId(), u2);
-      return m;
-    }
-
-    Config config() {
-      return new Config() {
-        @Override
-        public UserRepository getUserRepository() {
-          return new UserRepository() {
-            @Override
-            public Option<User> get(final Integer id) {
-              return Option.of(byId.get(id));
-            }
-
-            @Override
-            public Option<User> find(final String username) {
-              return Option.ofOptional(
-                  byId.values().stream().filter(u -> u.getUsername().equals(username)).findFirst());
-            }
-
-            @Override
-            public Validation<Seq<String>, User> create(final User user) {
-              return Try.of(() -> store(user))
-                  .map(Validation::<Seq<String>, User>valid)
-                  .recover(
-                      UserExistsException.class, e -> Validation.invalid(Vector.of(e.getMessage())))
-                  .get();
-            }
-
-            @Override
-            public Validation<Seq<String>, User> update(final User user) {
-              return Try.of(() -> tryUpdate(user))
-                  .map(Validation::<Seq<String>, User>valid)
-                  .recover(
-                      UserExistsException.class, e -> Validation.invalid(List.of(e.getMessage())))
-                  .get();
-            }
-
-            private User tryUpdate(final User user) {
-              return get(user.getId())
-                  .map(putUser(user))
-                  .getOrElseThrow(() -> new UserExistsException("user.not.exists"));
-            }
-
-            private Function<User, User> putUser(final User user) {
-              return __ -> {
-                byId.put(user.getId(), user);
-                return user;
-              };
-            }
-
-            private User store(final User user) throws SQLException {
-              if (find(user.getUsername()).isDefined()) {
-                throw new UserExistsException("user.unique.constraint");
-              }
-              if ("boomer".equals(user.getUsername())) {
-                throw new SQLException("boom");
-              }
-              final User toInsert = user.withId(idGen.incrementAndGet());
-              byId.put(toInsert.getId(), toInsert);
-              return toInsert;
-            }
-          };
-        }
-
-        void print(String s, String... arg) {
-          System.out.println(String.format(s, arg));
-        }
-
-        void print(String s) {
-          System.out.println(s);
-        }
-
-        @Override
-        public MailService getMailService() {
-          return m -> {
-            print("pretending to send a toMail:");
-            print("from:\t\t%s", m.getFrom());
-            print("to:\t\t\t%s", m.getTo());
-            print("subject:\t%s", m.getSubject());
-            print("message:\t%s", m.getMessage());
-
-            return null;
-          };
-        }
-      };
-    }
+    return new TestApp(getConfig());
   }
 }

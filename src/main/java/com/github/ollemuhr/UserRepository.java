@@ -1,10 +1,10 @@
 package com.github.ollemuhr;
 
-import io.vavr.collection.Seq;
-import io.vavr.control.Option;
-import io.vavr.control.Validation;
+import io.trane.future.Future;
+import java.util.List;
+import java.util.Optional;
 
-/** The user db access. */
+/** The user db access. @author Olle Muhr | olle.muhr@fareoffice.com */
 public interface UserRepository {
 
   /**
@@ -13,7 +13,7 @@ public interface UserRepository {
    * @param id the id.
    * @return the user.
    */
-  Option<User> get(Integer id);
+  Future<Optional<User>> get(Long id);
 
   /**
    * Find a user by username.
@@ -21,7 +21,7 @@ public interface UserRepository {
    * @param username the username.
    * @return the user.
    */
-  Option<User> find(String username);
+  Future<Optional<User>> find(String username);
 
   /**
    * Store a user in db.
@@ -29,7 +29,7 @@ public interface UserRepository {
    * @param user the user.
    * @return the stored user.
    */
-  Validation<Seq<String>, User> create(User user);
+  Future<User> create(User user);
 
   /**
    * Update a user.
@@ -37,5 +37,12 @@ public interface UserRepository {
    * @param user the updated user.
    * @return the updated user.
    */
-  Validation<Seq<String>, User> update(User user);
+  Future<User> update(User user);
+
+  /**
+   * Find all users.
+   *
+   * @return the future list of users.
+   */
+  Future<List<User>> findAll();
 }

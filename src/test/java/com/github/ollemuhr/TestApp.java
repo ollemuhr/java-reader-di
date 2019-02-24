@@ -1,50 +1,54 @@
 package com.github.ollemuhr;
 
-import io.vavr.collection.Seq;
-import io.vavr.control.Option;
-import io.vavr.control.Validation;
+import io.trane.future.Future;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
-/** Showing how to apply config. */
-public class TestApp {
+class TestApp {
+  private final UserManager userManager;
+  private final Mailer mailer;
+  private final Users users;
 
-  private final Config config;
-
-  private final UserManager userManager = new UserManager();
-
-  public TestApp(final Config config) {
-    this.config = config;
+  TestApp(final Config config) {
+    this.mailer = new Mailer(config);
+    this.users = new Users(config);
+    this.userManager = new UserManager(users);
   }
 
-  public Option<User> findById(final Integer id) {
-    return userManager.getUser(id).apply(config);
+  Future<Optional<User>> findById(final Long id) {
+    return users.getUser(id);
   }
 
-  public Option<User> findByUsername(final String username) {
-    return userManager.findUser(username).apply(config);
+  Future<Optional<User>> findByUsername(final String username) {
+    return users.findUser(username);
   }
 
-  Option<String> getUserMail(final Integer id) {
-    return userManager.getUser(id).map(user -> user.map(User::getEmail)).apply(config);
+  Future<List<User>> findAll() {
+    return users.findAll();
   }
 
-  public Option<Map<String, String>> getUserInfo(final String username) {
-    return userManager.userInfo(username).apply(config);
+  Future<Optional<String>> getUserMail(final Long id) {
+    return users.getUser(id).map(option -> option.map(User::getEmail));
   }
 
-  public Option<User> findBossOf(final String username) {
-    return userManager.findBossOf(username).apply(config);
+  Future<Optional<Map<String, String>>> getUserInfo(final String username) {
+    return userManager.userInfo(username);
   }
 
-  public Validation<Seq<String>, User> create(final User user) {
-    return userManager.create(user).apply(config);
+  Future<Optional<User>> findBossOf(final String username) {
+    return userManager.findBossOf(username);
   }
 
-  public Validation<Seq<String>, User> update(final User user) {
-    return userManager.update(user).apply(config);
+  Future<User> create(final User user) {
+    return users.create(user);
   }
 
-  public Validation<Seq<String>, User> createValidAndMail(final User user) {
-    return userManager.createValidAndMail(user).apply(config);
+  Future<User> update(final User user) {
+    return users.update(user);
+  }
+
+  Future<User> createValidAndMail(final User user) {
+    return users.create(user).onSuccess(mailer::send);
   }
 }

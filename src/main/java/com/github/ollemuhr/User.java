@@ -1,23 +1,23 @@
 package com.github.ollemuhr;
 
-import io.vavr.collection.Seq;
-import io.vavr.control.Validation;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.regex.Pattern;
 
 /** A user that can only be created using static 'valid' method. */
 public class User {
 
-  private final Integer id;
+  private final Long id;
   private final String firstName;
   private final String lastName;
   private final String email;
-  private final Integer supervisorId;
+  private final Long supervisorId;
   private final String username;
 
-  public static Validation<Seq<String>, User> valid(
-      final Integer id,
-      final Integer supervisorId,
+  public static User valid(
+      final Long id,
+      final Long supervisorId,
       final String firstName,
       final String lastName,
       final String email,
@@ -26,8 +26,8 @@ public class User {
   }
 
   private User(
-      final Integer id,
-      final Integer supervisorId,
+      final Long id,
+      final Long supervisorId,
       final String firstName,
       final String lastName,
       final String email,
@@ -46,7 +46,7 @@ public class User {
    * @param id the id.
    * @return the copied user with an id.
    */
-  public User withId(final Integer id) {
+  public User withId(final Long id) {
     return new User(
         id,
         this.getSupervisorId(),
@@ -60,7 +60,7 @@ public class User {
     return email;
   }
 
-  public Integer getSupervisorId() {
+  public Long getSupervisorId() {
     return supervisorId;
   }
 
@@ -76,7 +76,7 @@ public class User {
     return username;
   }
 
-  public Integer getId() {
+  public Long getId() {
     return id;
   }
 
@@ -131,44 +131,46 @@ public class User {
 
     Pattern namePattern = Pattern.compile("^[A-Za-z0-9+_.-]+$");
 
-    static Validation<Seq<String>, User> user(
-        final Integer id,
-        final Integer supervisorId,
+    static User user(
+        final Long id,
+        final Long supervisorId,
         final String firstName,
         final String lastName,
         final String email,
         final String username) {
-      return Validation.<String, Integer>valid(id)
-          .combine(Validation.valid(supervisorId))
-          .combine(validFirstName(firstName))
-          .combine(validLastName(lastName))
-          .combine(validEmail(email))
-          .combine(validUsername(username))
-          .ap(User::new);
+      final var errors = new ArrayList<String>();
+      validFirstName(firstName, errors);
+      validLastName(lastName, errors);
+      validEmail(email, errors);
+      validUsername(username, errors);
+      if (!errors.isEmpty()) {
+        throw new ValidationError(errors);
+      }
+      return new User(id, supervisorId, firstName, lastName, email, username);
     }
 
-    static Validation<String, String> validFirstName(final String s) {
-      return namePattern.matcher(s).matches()
-          ? Validation.valid(s)
-          : Validation.invalid("user.firstName.invalid");
+    static void validFirstName(final String s, final List<String> errors) {
+      if (!namePattern.matcher(s).matches()) {
+        errors.add("user.firstName.invalid");
+      }
     }
 
-    static Validation<String, String> validLastName(final String s) {
-      return namePattern.matcher(s).matches()
-          ? Validation.valid(s)
-          : Validation.invalid("user.lastName.invalid");
+    static void validLastName(final String s, final List<String> errors) {
+      if (!namePattern.matcher(s).matches()) {
+        errors.add("user.lastName.invalid");
+      }
     }
 
-    static Validation<String, String> validEmail(final String s) {
-      return emailPattern.matcher(s).matches()
-          ? Validation.valid(s)
-          : Validation.invalid("user.email.invalid");
+    static void validEmail(final String s, final List<String> errors) {
+      if (!emailPattern.matcher(s).matches()) {
+        errors.add("user.email.invalid");
+      }
     }
 
-    static Validation<String, String> validUsername(final String s) {
-      return s == null || s.length() < 4
-          ? Validation.invalid("user.username.minlen")
-          : Validation.valid(s);
+    static void validUsername(final String s, final List<String> errors) {
+      if (s == null || s.length() < 4) {
+        errors.add("user.username.minlen");
+      }
     }
   }
 }

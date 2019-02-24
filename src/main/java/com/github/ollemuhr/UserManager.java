@@ -1,24 +1,29 @@
 package com.github.ollemuhr;
 
-import io.vavr.collection.Seq;
-import io.vavr.control.Option;
-import io.vavr.control.Try;
-import io.vavr.control.Validation;
+import io.trane.future.Future;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.BiFunction;
 
-/** Impl with some extra 'convenience'. */
-public class UserManager implements Users, Mailer {
+public class UserManager {
 
-  private BiFunction<User, User, Map<String, String>> toMap =
+  private final Users users;
+
+  private BiFunction<User, Optional<User>, Map<String, String>> toMap =
       (user, boss) -> {
         final Map<String, String> m = new HashMap<>();
         m.put("fullname", user.getFirstName() + " " + user.getLastName());
         m.put("email", user.getEmail());
-        m.put("boss", boss.getFirstName() + " " + boss.getLastName());
+        final String bossName =
+            boss.map(b -> b.getFirstName() + " " + b.getLastName()).orElse("No boss");
+        m.put("boss", bossName);
         return m;
       };
+
+  public UserManager(final Users users) {
+    this.users = users;
+  }
 
   /**
    * User info.
@@ -26,16 +31,14 @@ public class UserManager implements Users, Mailer {
    * @param username the username.
    * @return some user info.
    */
-  public Configured<Config, Option<Map<String, String>>> userInfo(final String username) {
-    return new Configured<>(
-        config ->
-            findUser(username)
-                .apply(config)
-                .flatMap(
-                    user ->
-                        getUser(user.getSupervisorId())
-                            .apply(config)
-                            .map(boss -> toMap.apply(user, boss))));
+  public Future<Optional<Map<String, String>>> userInfo(final String username) {
+    final var userFuture = users.findUser(username);
+    final var supervisorId = userFuture.map(ou -> ou.map(User::getSupervisorId));
+    final var boss =
+        supervisorId.flatMap(
+            idOption -> idOption.map(users::getUser).orElse(Future.value(Optional.empty())));
+
+    return userFuture.flatMap(ou -> boss.map(ob -> ou.map(u -> toMap.apply(u, ob))));
   }
 
   /**
@@ -44,27 +47,11 @@ public class UserManager implements Users, Mailer {
    * @param username the user with a boss.
    * @return the boss.
    */
-  public Configured<Config, Option<User>> findBossOf(final String username) {
-    return new Configured<>(
-        config ->
-            findUser(username)
-                .apply(config)
-                .flatMap(u -> getUser(u.getSupervisorId()).apply(config)));
-  }
-
-  /**
-   * Stores a new user in db and sends an email to the user as a side effect.
-   *
-   * @param user the user.
-   * @return the stored user.
-   */
-  public Configured<Config, Validation<Seq<String>, User>> createValidAndMail(final User user) {
-    return new Configured<>(
-        config -> {
-          final Validation<Seq<String>, User> valid = create(user).apply(config);
-          Try.of(() -> valid.flatMap(u -> send(u).apply(config)))
-              .onFailure(t -> System.out.println(t.getMessage()));
-          return valid;
-        });
+  public Future<Optional<User>> findBossOf(final String username) {
+    return users
+        .findUser(username)
+        .map(userOption -> userOption.map(User::getSupervisorId))
+        .map(idOption -> idOption.map(users::getUser))
+        .flatMap(a -> a.orElse(Future.value(Optional.empty())));
   }
 }

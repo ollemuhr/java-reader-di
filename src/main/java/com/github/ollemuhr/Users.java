@@ -1,25 +1,34 @@
 package com.github.ollemuhr;
 
-import io.vavr.collection.Seq;
-import io.vavr.control.Option;
-import io.vavr.control.Validation;
+import io.trane.future.Future;
+import java.util.List;
+import java.util.Optional;
 
-/** Configured user repository methods. */
-public interface Users {
+public final class Users {
 
-  default Configured<Config, Option<User>> getUser(final Integer id) {
-    return new Configured<>(config -> config.getUserRepository().get(id));
+  private final Config config;
+
+  public Users(final Config config) {
+    this.config = config;
   }
 
-  default Configured<Config, Option<User>> findUser(final String username) {
-    return new Configured<>(config -> config.getUserRepository().find(username));
+  Future<Optional<User>> getUser(final Long id) {
+    return config.getUserRepository().get(id);
   }
 
-  default Configured<Config, Validation<Seq<String>, User>> create(final User user) {
-    return new Configured<>(config -> config.getUserRepository().create(user));
+  Future<Optional<User>> findUser(final String username) {
+    return config.getUserRepository().find(username);
   }
 
-  default Configured<Config, Validation<Seq<String>, User>> update(final User user) {
-    return new Configured<>(config -> config.getUserRepository().update(user));
+  Future<List<User>> findAll() {
+    return config.getUserRepository().findAll();
+  }
+
+  Future<User> create(final User user) {
+    return config.getUserRepository().create(user);
+  }
+
+  Future<User> update(final User user) {
+    return config.getUserRepository().update(user);
   }
 }

@@ -1,14 +1,23 @@
 package com.github.ollemuhr;
 
-import io.vavr.collection.Seq;
-import io.vavr.control.Validation;
+import io.trane.future.Future;
 import java.util.Objects;
 
 /** Configured mail sender. */
-public interface Mailer {
+final class Mailer {
 
-  default Configured<Config, Validation<Seq<String>, Void>> send(final User user) {
-    return new Configured<>(config -> config.getMailService().send(toMail(user)));
+  private final Config config;
+
+  Mailer(final Config config) {
+    this.config = config;
+  }
+
+  Future<Void> send(final User user) {
+    final var emailFuture = Future.apply(() -> toMail(user));
+    return emailFuture
+        .flatMap(email -> config.getMailService().send(email))
+        .onFailure(Throwable::printStackTrace)
+        .rescue(e -> Future.VOID);
   }
 
   /**
@@ -17,7 +26,7 @@ public interface Mailer {
    * @param user the user.
    * @return the mail.
    */
-  default MailService.Mail toMail(final User user) {
+  private static MailService.Mail toMail(final User user) {
     Objects.requireNonNull(user.getId());
     Objects.requireNonNull(user.getEmail());
     return new MailService.Mail(
