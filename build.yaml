@@ -3,9 +3,11 @@ master:
     - image: maven:3.6.0-jdk-8-alpine
       commands:
         - mvn install
+        - ls -l /workspace/target
       secrets:
         - hej
         - san
+      test-result: target/surefire-reports
 branch:
   steps:
     - image: maven:3.6.0-jdk-8-alpine
