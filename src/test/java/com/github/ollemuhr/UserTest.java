@@ -33,6 +33,11 @@ public class UserTest {
   }
 
   @Test
+  public void name() {
+    fail("I am failing ..., ");
+  }
+
+  @Test
   public void testUserInfo() {
     assertEquals("Mrone Oner", app.getUserInfo(u2.getUsername()).get().get("boss"));
   }
